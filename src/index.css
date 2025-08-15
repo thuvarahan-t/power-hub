@@ -2,95 +2,260 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Power Hub Design System - Industrial Dark Theme */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Dark Industrial Base */
+    --background: 220 13% 6%;
+    --foreground: 220 13% 96%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Card System */
+    --card: 220 13% 8%;
+    --card-foreground: 220 13% 96%;
+    --card-glow: 220 13% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    /* Interactive Elements */
+    --popover: 220 13% 10%;
+    --popover-foreground: 220 13% 96%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Electric Blue Primary */
+    --primary: 195 100% 50%;
+    --primary-foreground: 220 13% 6%;
+    --primary-glow: 195 100% 60%;
+    --primary-muted: 195 100% 20%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Neutral Secondary */
+    --secondary: 220 13% 15%;
+    --secondary-foreground: 220 13% 96%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Subtle Muted */
+    --muted: 220 13% 12%;
+    --muted-foreground: 220 13% 60%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Electric Accent */
+    --accent: 180 100% 50%;
+    --accent-foreground: 220 13% 6%;
+    --accent-glow: 180 100% 60%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Critical Red */
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 220 13% 96%;
+    --destructive-glow: 0 100% 60%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Warning Amber */
+    --warning: 45 100% 50%;
+    --warning-foreground: 220 13% 6%;
+    --warning-glow: 45 100% 60%;
 
-    --radius: 0.5rem;
+    /* Success Green */
+    --success: 142 100% 45%;
+    --success-foreground: 220 13% 6%;
+    --success-glow: 142 100% 55%;
 
-    --sidebar-background: 0 0% 98%;
+    /* Borders & Inputs */
+    --border: 220 13% 20%;
+    --input: 220 13% 15%;
+    --ring: 195 100% 50%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    /* Enhanced Radius */
+    --radius: 0.75rem;
 
-    --sidebar-primary: 240 5.9% 10%;
+    /* Power Hub Specific Variables */
+    --voltage-color: 195 100% 50%;
+    --current-color: 45 100% 50%;
+    --power-color: 280 100% 60%;
+    --temperature-color: 142 100% 45%;
 
-    --sidebar-primary-foreground: 0 0% 98%;
+    /* Gradients */
+    --gradient-electric: linear-gradient(135deg, hsl(195 100% 50%), hsl(180 100% 50%));
+    --gradient-power: linear-gradient(135deg, hsl(280 100% 60%), hsl(195 100% 50%));
+    --gradient-warning: linear-gradient(135deg, hsl(45 100% 50%), hsl(0 100% 50%));
+    --gradient-success: linear-gradient(135deg, hsl(142 100% 45%), hsl(180 100% 50%));
+    --gradient-card: linear-gradient(135deg, hsl(220 13% 8%), hsl(220 13% 12%));
+    
+    /* Shadows & Glows */
+    --shadow-electric: 0 0 30px hsl(195 100% 50% / 0.3);
+    --shadow-warning: 0 0 30px hsl(45 100% 50% / 0.3);
+    --shadow-success: 0 0 30px hsl(142 100% 45% / 0.3);
+    --shadow-card: 0 10px 30px hsl(220 13% 3% / 0.5);
 
-    --sidebar-accent: 240 4.8% 95.9%;
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Typography */
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   }
 
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+}
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+@layer components {
+  /* Power Hub Status Indicators */
+  .status-connected {
+    @apply relative;
+  }
+  
+  .status-connected::before {
+    content: '';
+    @apply absolute -inset-1 rounded-full bg-gradient-to-r from-success/20 to-accent/20 animate-pulse;
+  }
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+  .status-warning {
+    @apply relative;
+  }
+  
+  .status-warning::before {
+    content: '';
+    @apply absolute -inset-1 rounded-full bg-gradient-to-r from-warning/20 to-destructive/20 animate-pulse;
+  }
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+  /* Glowing Effects */
+  .glow-electric {
+    box-shadow: var(--shadow-electric);
+  }
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+  .glow-warning {
+    box-shadow: var(--shadow-warning);
+  }
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+  .glow-success {
+    box-shadow: var(--shadow-success);
+  }
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+  /* Animated Value Cards */
+  .value-card {
+    @apply bg-gradient-to-br from-card to-card-glow border border-border/50 rounded-2xl p-6 shadow-card transition-all duration-300 hover:scale-105 hover:shadow-2xl;
+  }
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+  .value-card.voltage {
+    @apply border-[hsl(var(--voltage-color))]/30 hover:shadow-[0_0_30px_hsl(var(--voltage-color)_/_0.2)];
+  }
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+  .value-card.current {
+    @apply border-[hsl(var(--current-color))]/30 hover:shadow-[0_0_30px_hsl(var(--current-color)_/_0.2)];
+  }
+
+  .value-card.power {
+    @apply border-[hsl(var(--power-color))]/30 hover:shadow-[0_0_30px_hsl(var(--power-color)_/_0.2)];
+  }
+
+  .value-card.temperature {
+    @apply border-[hsl(var(--temperature-color))]/30 hover:shadow-[0_0_30px_hsl(var(--temperature-color)_/_0.2)];
+  }
+
+  /* Progress Rings */
+  .progress-ring {
+    @apply relative w-24 h-24;
+  }
+
+  .progress-ring circle {
+    @apply transition-all duration-500 ease-out;
+  }
+
+  /* Control Sliders */
+  .control-slider {
+    @apply relative h-2 bg-muted rounded-full overflow-hidden;
+  }
+
+  .control-slider::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 animate-pulse;
+  }
+}
+
+@layer utilities {
+  /* Custom animations */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px hsl(var(--primary) / 0.6);
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes bounce-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.3) translateY(20px);
+    }
+    50% {
+      transform: scale(1.05) translateY(-5px);
+    }
+    70% {
+      transform: scale(0.9) translateY(0);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s infinite;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.5s ease-out;
+  }
+
+  .animate-bounce-in {
+    animation: bounce-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* Gradient backgrounds */
+  .bg-gradient-electric {
+    background: var(--gradient-electric);
+  }
+
+  .bg-gradient-power {
+    background: var(--gradient-power);
+  }
+
+  .bg-gradient-warning {
+    background: var(--gradient-warning);
+  }
+
+  .bg-gradient-success {
+    background: var(--gradient-success);
+  }
+
+  .bg-gradient-card {
+    background: var(--gradient-card);
+  }
+
+  /* Text effects */
+  .text-electric {
+    color: hsl(var(--voltage-color));
+  }
+
+  .text-current {
+    color: hsl(var(--current-color));
+  }
+
+  .text-power {
+    color: hsl(var(--power-color));
+  }
+
+  .text-temperature {
+    color: hsl(var(--temperature-color));
+  }
+
+  /* Font family */
+  .font-mono {
+    font-family: var(--font-mono);
   }
 }
 
