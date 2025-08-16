@@ -9,6 +9,9 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts';
+import { Button } from '@/components/ui/button';
+import { Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface TelemetryData {
   timestamp: number;
@@ -32,12 +35,23 @@ interface LiveChartProps {
   telemetry: TelemetryData;
   timeRange: string;
   isActive: boolean;
+  onTimeRangeChange?: (range: string) => void;
+  selectedMetric?: 'voltage' | 'current' | 'power' | 'temperature';
 }
+
+const timeRangeOptions = [
+  { value: '1min', label: '1 Min', icon: Clock },
+  { value: '5min', label: '5 Min', icon: Clock },
+  { value: '30min', label: '30 Min', icon: Clock },
+  { value: '2hr', label: '2 Hour', icon: Clock },
+];
 
 export const LiveChart: React.FC<LiveChartProps> = ({ 
   telemetry, 
   timeRange, 
-  isActive 
+  isActive,
+  onTimeRangeChange,
+  selectedMetric = 'temperature'
 }) => {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
 
@@ -98,78 +112,102 @@ export const LiveChart: React.FC<LiveChartProps> = ({
   };
 
   return (
-    <div className="h-96 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-          <CartesianGrid 
-            strokeDasharray="3 3" 
-            stroke="hsl(var(--border))" 
-            opacity={0.3}
-          />
-          
-          <XAxis 
-            dataKey="time" 
-            stroke="hsl(var(--muted-foreground))"
-            fontSize={12}
-            tick={{ fill: 'hsl(var(--muted-foreground))' }}
-          />
-          
-          <YAxis 
-            stroke="hsl(var(--muted-foreground))"
-            fontSize={12}
-            tick={{ fill: 'hsl(var(--muted-foreground))' }}
-          />
-          
-          <Tooltip content={<CustomTooltip />} />
-          
-          <Legend 
-            wrapperStyle={{ 
-              color: 'hsl(var(--foreground))',
-              fontSize: '14px'
-            }}
-          />
-          
-          <Line
-            type="monotone"
-            dataKey="voltage"
-            stroke="hsl(var(--voltage-color))"
-            strokeWidth={2}
-            dot={false}
-            name="Voltage"
-            connectNulls={false}
-          />
-          
-          <Line
-            type="monotone"
-            dataKey="current"
-            stroke="hsl(var(--current-color))"
-            strokeWidth={2}
-            dot={false}
-            name="Current"
-            connectNulls={false}
-          />
-          
-          <Line
-            type="monotone"
-            dataKey="power"
-            stroke="hsl(var(--power-color))"
-            strokeWidth={2}
-            dot={false}
-            name="Power"
-            connectNulls={false}
-          />
-          
-          <Line
-            type="monotone"
-            dataKey="temperature"
-            stroke="hsl(var(--temperature-color))"
-            strokeWidth={2}
-            dot={false}
-            name="Temperature"
-            connectNulls={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+    <div className="space-y-4">
+      {/* Time Control Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">Time Range</span>
+        </div>
+        <div className="flex gap-1">
+          {timeRangeOptions.map((option) => {
+            const Icon = option.icon;
+            return (
+              <Button
+                key={option.value}
+                variant={timeRange === option.value ? "default" : "outline"}
+                size="sm"
+                onClick={() => onTimeRangeChange?.(option.value)}
+                className={cn(
+                  "h-8 px-3 text-xs",
+                  timeRange === option.value && "bg-primary text-primary-foreground"
+                )}
+              >
+                <Icon className="h-3 w-3 mr-1" />
+                {option.label}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div style={{ height: 280 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis 
+              dataKey="time" 
+              stroke="hsl(var(--muted-foreground))"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+            />
+            <YAxis 
+              stroke="hsl(var(--muted-foreground))"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Legend />
+            {selectedMetric === 'temperature' && (
+              <Line
+                type="monotone"
+                dataKey="temperature"
+                stroke="hsl(var(--warning))"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, stroke: "hsl(var(--warning))", strokeWidth: 2 }}
+                name="Temperature (°C)"
+              />
+            )}
+            {selectedMetric === 'current' && (
+              <Line
+                type="monotone"
+                dataKey="current"
+                stroke="hsl(var(--current))"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, stroke: "hsl(var(--current))", strokeWidth: 2 }}
+                name="Current (A)"
+              />
+            )}
+            {selectedMetric === 'power' && (
+              <Line
+                type="monotone"
+                dataKey="power"
+                stroke="hsl(var(--power))"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, stroke: "hsl(var(--power))", strokeWidth: 2 }}
+                name="Power (W)"
+              />
+            )}
+            {selectedMetric === 'voltage' && (
+              <Line
+                type="monotone"
+                dataKey="voltage"
+                stroke="hsl(var(--electric))"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, stroke: "hsl(var(--electric))", strokeWidth: 2 }}
+                name="Voltage (V)"
+              />
+            )}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };

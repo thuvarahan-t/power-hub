@@ -121,7 +121,7 @@ export const LoadOutputTab: React.FC<LoadOutputTabProps> = ({
   const computedPower = voltage * currentLimit;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       {/* Safety Warning */}
       {showSafetyWarning && (
         <Card className="border-warning/50 bg-gradient-warning/10 animate-pulse">
@@ -251,43 +251,77 @@ export const LoadOutputTab: React.FC<LoadOutputTabProps> = ({
         </Card>
       </div>
 
-      {/* Power Analysis */}
-      <Card className="value-card">
+      {/* Output Control */}
+      <Card className={cn(
+        'value-card border-2 transition-all',
+        outputEnabled ? 'border-success/50 bg-success/5' : 'border-border'
+      )}>
         <CardHeader>
-          <CardTitle>Power Analysis</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Output Control</span>
+            <Badge 
+              variant={outputEnabled ? 'default' : 'secondary'}
+              className="text-lg py-2 px-4"
+            >
+              {outputEnabled ? 'ENABLED' : 'DISABLED'}
+            </Badge>
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between">
             <div className="space-y-2">
-              <Label>Computed Max Power</Label>
-              <div className="text-3xl font-bold font-mono text-power">
-                {computedPower.toFixed(2)} W
-              </div>
+              <Label className="text-lg">Enable Output</Label>
               <p className="text-sm text-muted-foreground">
-                V × I = {voltage.toFixed(1)}V × {currentLimit.toFixed(1)}A
+                Activate power output with current settings
               </p>
             </div>
             
-            <div className="space-y-2">
-              <Label>Current Output</Label>
-              <div className="text-2xl font-bold font-mono text-electric">
-                {currentVoltage.toFixed(2)} V
-              </div>
-              <div className="text-2xl font-bold font-mono text-current">
-                {currentCurrent.toFixed(3)} A
-              </div>
-            </div>
+            <Switch
+              checked={outputEnabled}
+              onCheckedChange={handleOutputToggle}
+              className="scale-150"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label>Actual Power</Label>
-              <div className="text-3xl font-bold font-mono text-power">
-                {(currentVoltage * currentCurrent).toFixed(2)} W
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Live measurement
+          <div className="grid grid-cols-2 gap-4">
+            <Button
+              variant="electric"
+              size="lg"
+              onClick={onSoftStart}
+              disabled={outputEnabled}
+              className="gap-2"
+            >
+              <Play className="h-5 w-5" />
+              Soft Start
+            </Button>
+            
+            <Button
+              variant={outputEnabled ? "warning" : "secondary"}
+              size="lg"
+              onClick={() => onOutputToggle(!outputEnabled)}
+              className="gap-2"
+            >
+              {outputEnabled ? (
+                <>
+                  <Square className="h-5 w-5" />
+                  Stop Output
+                </>
+              ) : (
+                <>
+                  <Play className="h-5 w-5" />
+                  Start Output
+                </>
+              )}
+            </Button>
+          </div>
+
+          {outputEnabled && (
+            <div className="p-4 bg-success/10 border border-success/30 rounded-lg">
+              <p className="text-sm text-success">
+                ⚡ Output is active. Monitor current and temperature closely.
               </p>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
@@ -368,77 +402,43 @@ export const LoadOutputTab: React.FC<LoadOutputTabProps> = ({
         </CardContent>
       </Card>
 
-      {/* Output Control */}
-      <Card className={cn(
-        'value-card border-2 transition-all',
-        outputEnabled ? 'border-success/50 bg-success/5' : 'border-border'
-      )}>
+      {/* Power Analysis */}
+      <Card className="value-card">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Output Control</span>
-            <Badge 
-              variant={outputEnabled ? 'default' : 'secondary'}
-              className="text-lg py-2 px-4"
-            >
-              {outputEnabled ? 'ENABLED' : 'DISABLED'}
-            </Badge>
-          </CardTitle>
+          <CardTitle>Power Analysis</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-2">
-              <Label className="text-lg">Enable Output</Label>
+              <Label>Computed Max Power</Label>
+              <div className="text-3xl font-bold font-mono text-power">
+                {computedPower.toFixed(2)} W
+              </div>
               <p className="text-sm text-muted-foreground">
-                Activate power output with current settings
+                V × I = {voltage.toFixed(1)}V × {currentLimit.toFixed(1)}A
               </p>
             </div>
             
-            <Switch
-              checked={outputEnabled}
-              onCheckedChange={handleOutputToggle}
-              className="scale-150"
-            />
-          </div>
+            <div className="space-y-2">
+              <Label>Current Output</Label>
+              <div className="text-2xl font-bold font-mono text-electric">
+                {currentVoltage.toFixed(2)} V
+              </div>
+              <div className="text-2xl font-bold font-mono text-current">
+                {currentCurrent.toFixed(3)} A
+              </div>
+            </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Button
-              variant="electric"
-              size="lg"
-              onClick={onSoftStart}
-              disabled={outputEnabled}
-              className="gap-2"
-            >
-              <Play className="h-5 w-5" />
-              Soft Start
-            </Button>
-            
-            <Button
-              variant={outputEnabled ? "warning" : "secondary"}
-              size="lg"
-              onClick={() => onOutputToggle(!outputEnabled)}
-              className="gap-2"
-            >
-              {outputEnabled ? (
-                <>
-                  <Square className="h-5 w-5" />
-                  Stop Output
-                </>
-              ) : (
-                <>
-                  <Play className="h-5 w-5" />
-                  Start Output
-                </>
-              )}
-            </Button>
-          </div>
-
-          {outputEnabled && (
-            <div className="p-4 bg-success/10 border border-success/30 rounded-lg">
-              <p className="text-sm text-success">
-                ⚡ Output is active. Monitor current and temperature closely.
+            <div className="space-y-2">
+              <Label>Actual Power</Label>
+              <div className="text-3xl font-bold font-mono text-power">
+                {(currentVoltage * currentCurrent).toFixed(2)} W
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Live measurement
               </p>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 

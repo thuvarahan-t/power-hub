@@ -5,6 +5,16 @@
 /* Power Hub Design System - Industrial Dark Theme */
 
 @layer base {
+  html, body {
+    @apply h-full w-full m-0 p-0;
+    overflow: hidden;
+  }
+
+  #root {
+    @apply h-full w-full;
+    overflow: hidden;
+  }
+
   :root {
     /* Dark Industrial Base */
     --background: 220 13% 6%;

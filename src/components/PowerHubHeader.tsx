@@ -1,36 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Settings, Download, Wifi, WifiOff, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface MetricTileProps {
-  label: string;
-  value: number | null;
-  unit: string;
-  sparklineData?: number[];
-}
-
-const MetricTile: React.FC<MetricTileProps> = ({ label, value, unit, sparklineData }) => (
-  <div className="bg-card/50 backdrop-blur-sm border border-primary/20 rounded-xl p-4 space-y-2">
-    <div className="text-sm text-muted-foreground">{label}</div>
-    <div className="text-2xl font-bold font-mono text-electric">
-      {value !== null ? `${value.toFixed(2)}` : 'N/A'}
-      <span className="text-lg text-muted-foreground ml-1">{unit}</span>
-    </div>
-    {sparklineData && (
-      <div className="h-6 flex items-end gap-0.5">
-        {sparklineData.slice(-20).map((point, i) => (
-          <div
-            key={i}
-            className="bg-electric/30 w-1 rounded-sm transition-all"
-            style={{ height: `${Math.max(2, (point / Math.max(...sparklineData)) * 24)}px` }}
-          />
-        ))}
-      </div>
-    )}
-  </div>
-);
+import { ExportDialog } from './ExportDialog';
+import { TelemetryData, SparklineData } from '@/lib/export-utils';
 
 interface ConnectionStatus {
   backend: 'connected' | 'disconnected';
@@ -45,12 +19,8 @@ interface PowerHubHeaderProps {
     outputVoltage: number;
     outputCurrent: number;
   };
-  sparklineData: {
-    inputPower: number[];
-    outputPower: number[];
-    outputVoltage: number[];
-    outputCurrent: number[];
-  };
+  sparklineData: SparklineData;
+  telemetry: TelemetryData;
   onExport: () => void;
   onSettings: () => void;
 }
@@ -59,9 +29,12 @@ export const PowerHubHeader: React.FC<PowerHubHeaderProps> = ({
   connectionStatus,
   metrics,
   sparklineData,
+  telemetry,
   onExport,
   onSettings
 }) => {
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
   const getBackendStatus = () => {
     const isConnected = connectionStatus.backend === 'connected';
     return {
@@ -103,29 +76,25 @@ export const PowerHubHeader: React.FC<PowerHubHeaderProps> = ({
   const deviceStatus = getDeviceStatus();
 
   return (
-    <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-      {/* Hero Bar */}
-      <div className="p-6 pb-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold bg-gradient-electric bg-clip-text text-transparent">
-              Power Hub
+    <>
+      <header className="h-14 sticky top-0 z-30 bg-background/90 backdrop-blur border-b">
+        <div className="flex items-center justify-between h-full px-4">
+          <div className="relative z-10">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              PowerHub
             </h1>
-            <p className="text-lg text-muted-foreground">
-              Portable charging & voltage regulation
-            </p>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Backend Status */}
             <Badge 
               variant={backendStatus.variant as any}
               className={cn(
-                "flex items-center gap-2 text-sm py-2 px-4",
+                "flex items-center gap-1 text-xs py-1 px-2",
                 backendStatus.pulse && "animate-pulse"
               )}
             >
-              <backendStatus.icon className="h-4 w-4" />
+              <backendStatus.icon className="h-3 w-3" />
               {backendStatus.label}
             </Badge>
             
@@ -133,12 +102,12 @@ export const PowerHubHeader: React.FC<PowerHubHeaderProps> = ({
             <Badge 
               variant={deviceStatus.variant as any}
               className={cn(
-                "flex items-center gap-2 text-sm py-2 px-4",
+                "flex items-center gap-1 text-xs py-1 px-2",
                 deviceStatus.pulse && "animate-pulse"
               )}
             >
               <div className={cn(
-                "w-2 h-2 rounded-full",
+                "w-1.5 h-1.5 rounded-full",
                 deviceStatus.variant === 'default' && "bg-success animate-pulse",
                 deviceStatus.variant === 'warning' && "bg-warning animate-pulse",
                 deviceStatus.variant === 'destructive' && "bg-destructive animate-pulse"
@@ -149,10 +118,10 @@ export const PowerHubHeader: React.FC<PowerHubHeaderProps> = ({
             <Button 
               variant="control" 
               size="sm"
-              onClick={onExport}
-              className="gap-2"
+              onClick={() => setExportDialogOpen(true)}
+              className="gap-1 h-8 px-3"
             >
-              <Download className="h-4 w-4" />
+              <Download className="h-3 w-3" />
               Export
             </Button>
             
@@ -160,44 +129,22 @@ export const PowerHubHeader: React.FC<PowerHubHeaderProps> = ({
               variant="outline" 
               size="sm" 
               onClick={onSettings}
-              className="gap-2"
+              className="gap-1 h-8 px-3"
             >
-              <Settings className="h-4 w-4" />
+              <Settings className="h-3 w-3" />
               Settings
             </Button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Metric Tiles */}
-      <div className="px-6 pb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricTile 
-            label="Input Power (Pin)"
-            value={metrics.inputPower}
-            unit="W"
-            sparklineData={sparklineData.inputPower}
-          />
-          <MetricTile 
-            label="Output Power (Pout)"
-            value={metrics.outputPower}
-            unit="W"
-            sparklineData={sparklineData.outputPower}
-          />
-          <MetricTile 
-            label="Output Voltage (Vout)"
-            value={metrics.outputVoltage}
-            unit="V"
-            sparklineData={sparklineData.outputVoltage}
-          />
-          <MetricTile 
-            label="Output Current (Iout)"
-            value={metrics.outputCurrent}
-            unit="A"
-            sparklineData={sparklineData.outputCurrent}
-          />
-        </div>
-      </div>
-    </div>
+      {/* Export Dialog */}
+      <ExportDialog
+        telemetry={telemetry}
+        sparklineData={sparklineData}
+        isOpen={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+      />
+    </>
   );
 };

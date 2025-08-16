@@ -149,7 +149,7 @@ export const ChargeBatteryTab: React.FC<ChargeBatteryTabProps> = ({
   const estimatedFullTime = (capacity / (chargeCurrent * 1000)) * 1.2 * 3600; // seconds
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Battery Configuration */}
         <Card className="value-card">
@@ -251,60 +251,73 @@ export const ChargeBatteryTab: React.FC<ChargeBatteryTabProps> = ({
         </Card>
 
         {/* Charging Status */}
-        <Card className="value-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-electric" />
-              Charging Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Current Readings */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Battery Voltage</Label>
-                <div className="text-2xl font-bold font-mono text-electric">
-                  {currentVoltage.toFixed(3)}V
+        {isCharging && (
+          <Card className={cn(
+            'value-card border-2 transition-all',
+            phase === 'done' ? 'border-success/50 bg-success/5' : 'border-warning/50 bg-warning/5'
+          )}>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Battery className="h-5 w-5" />
+                  Charging Status
+                </span>
+                <Badge 
+                  variant={phase === 'done' ? 'default' : 'warning'}
+                  className="text-lg py-2 px-4"
+                >
+                  {phase.toUpperCase()}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Current Readings */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Battery Voltage</Label>
+                  <div className="text-2xl font-bold font-mono text-electric">
+                    {currentVoltage.toFixed(3)}V
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Charge Current</Label>
+                  <div className="text-2xl font-bold font-mono text-current">
+                    {currentCurrent.toFixed(3)}A
+                  </div>
                 </div>
               </div>
+
+              {/* Progress */}
               <div className="space-y-2">
-                <Label>Charge Current</Label>
-                <div className="text-2xl font-bold font-mono text-current">
-                  {currentCurrent.toFixed(3)}A
+                <div className="flex items-center justify-between">
+                  <Label>Charge Progress</Label>
+                  <span className="text-sm font-mono">{progress.toFixed(1)}%</span>
+                </div>
+                <Progress value={progress} className="h-3" />
+              </div>
+
+              {/* Capacity Progress */}
+              <div className="space-y-2">
+                <Label>Delivered Capacity</Label>
+                <div className="text-lg font-mono">
+                  {deliveredCapacity.toFixed(0)} / {capacity} mAh
                 </div>
               </div>
-            </div>
 
-            {/* Progress */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Charge Progress</Label>
-                <span className="text-sm font-mono">{progress.toFixed(1)}%</span>
+              {/* Time Estimates */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <Label>Estimated Full Time</Label>
+                  <div className="font-mono">~{formatTime(estimatedFullTime)}</div>
+                </div>
+                <div>
+                  <Label>Time Remaining</Label>
+                  <div className="font-mono">~{formatTime(timeRemaining)}</div>
+                </div>
               </div>
-              <Progress value={progress} className="h-3" />
-            </div>
-
-            {/* Capacity Progress */}
-            <div className="space-y-2">
-              <Label>Delivered Capacity</Label>
-              <div className="text-lg font-mono">
-                {deliveredCapacity.toFixed(0)} / {capacity} mAh
-              </div>
-            </div>
-
-            {/* Time Estimates */}
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <Label>Estimated Full Time</Label>
-                <div className="font-mono">~{formatTime(estimatedFullTime)}</div>
-              </div>
-              <div>
-                <Label>Time Remaining</Label>
-                <div className="font-mono">~{formatTime(timeRemaining)}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Charging State Machine */}
