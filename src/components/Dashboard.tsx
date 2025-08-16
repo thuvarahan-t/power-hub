@@ -40,26 +40,96 @@ export const Dashboard: React.FC = () => {
   });
   // ...existing code and hooks...
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
-        <div className="bg-card rounded-lg p-4 shadow">
-          <h2 className="text-xl font-semibold mb-2">Temperature (°C)</h2>
-          <LiveChart telemetry={telemetry} timeRange="5min" isActive={true} selectedMetric="temperature" />
-        </div>
-        <div className="bg-card rounded-lg p-4 shadow">
-          <h2 className="text-xl font-semibold mb-2">Current (A)</h2>
-          <LiveChart telemetry={telemetry} timeRange="5min" isActive={true} selectedMetric="current" />
-        </div>
-        <div className="bg-card rounded-lg p-4 shadow">
-          <h2 className="text-xl font-semibold mb-2">Power (W)</h2>
-          <LiveChart telemetry={telemetry} timeRange="5min" isActive={true} selectedMetric="power" />
-        </div>
-        <div className="bg-card rounded-lg p-4 shadow">
-          <h2 className="text-xl font-semibold mb-2">Voltage (V)</h2>
-          <LiveChart telemetry={telemetry} timeRange="5min" isActive={true} selectedMetric="voltage" />
-        </div>
+    <main className="min-w-0">
+      <h1 className="text-3xl font-bold mb-6">Live Telemetry</h1>
+      <div className="grid grid-cols-1 gap-4">
+        {/* Voltage Chart */}
+        <Card className="min-h-[340px]">
+          <CardHeader>
+            <CardTitle>Output Voltage (Vout)</CardTitle>
+            {/* Controls: Time Range, Pause/Resume, Export */}
+            {/* ...implement controls here... */}
+          </CardHeader>
+          <CardContent>
+            <LiveChart
+              telemetry={telemetry}
+              timeRange="5min"
+              isActive={true}
+              selectedMetric="voltage"
+              yAxisDomain={[0, 12]}
+              yAxisLabel="Voltage (V)"
+              yAxisTicks={[0,2,4,6,8,10,12]}
+              refLineValue={12}
+              refLineLabel="Limit"
+              exportCSV
+              exportPNG
+            />
+          </CardContent>
+        </Card>
+        {/* Current Chart */}
+        <Card className="min-h-[340px]">
+          <CardHeader>
+            <CardTitle>Output Current (Iout)</CardTitle>
+            {/* Controls: Time Range, Pause/Resume, Export */}
+          </CardHeader>
+          <CardContent>
+            <LiveChart
+              telemetry={telemetry}
+              timeRange="5min"
+              isActive={true}
+              selectedMetric="current"
+              yAxisDomain={[0, 2]}
+              yAxisLabel="Current (A)"
+              yAxisTicks={[0,0.5,1,1.5,2]}
+              refLineValue={2}
+              refLineLabel="Limit"
+              exportCSV
+              exportPNG
+            />
+          </CardContent>
+        </Card>
+        {/* Power Chart */}
+        <Card className="min-h-[340px]">
+          <CardHeader>
+            <CardTitle>Output Power (Pout)</CardTitle>
+            {/* Controls: Time Range, Pause/Resume, Export */}
+          </CardHeader>
+          <CardContent>
+            <LiveChart
+              telemetry={telemetry}
+              timeRange="5min"
+              isActive={true}
+              selectedMetric="power"
+              yAxisDomain={[0, 24]}
+              yAxisLabel="Power (W)"
+              yAxisTicks={[0,6,12,18,24]}
+              refLineValue={24}
+              refLineLabel="Limit"
+              exportCSV
+              exportPNG
+            />
+          </CardContent>
+        </Card>
+        {/* Temperature Chart */}
+        <Card className="min-h-[340px]">
+          <CardHeader>
+            <CardTitle>Temperature (°C)</CardTitle>
+            {/* Controls: Time Range, Pause/Resume, Export */}
+          </CardHeader>
+          <CardContent>
+            <LiveChart
+              telemetry={telemetry}
+              timeRange="5min"
+              isActive={true}
+              selectedMetric="temperature"
+              yAxisDomain={undefined}
+              yAxisLabel="Temperature (°C)"
+              exportCSV
+              exportPNG
+            />
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </main>
   );
 }

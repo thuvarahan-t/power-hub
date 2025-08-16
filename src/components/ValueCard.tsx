@@ -36,10 +36,10 @@ export const ValueCard: React.FC<ValueCardProps> = ({
 
   const getTypeColor = () => {
     switch (type) {
-      case 'voltage': return 'text-electric';
-      case 'current': return 'text-current';
-      case 'power': return 'text-power';
-      case 'temperature': return 'text-temperature';
+      case 'voltage': return 'text-[hsl(var(--electric))]';
+      case 'current': return 'text-[hsl(var(--current))]';
+      case 'power': return 'text-[hsl(var(--power))]';
+      case 'temperature': return 'text-[hsl(var(--warning))]';
       default: return 'text-foreground';
     }
   };
