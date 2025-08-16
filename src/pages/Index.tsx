@@ -10,6 +10,7 @@ import { BarChart } from '@/components/BarChart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { TelemetryFooter } from '@/components/TelemetryFooter';
 
 interface TelemetryData {
   timestamp: number;
@@ -26,7 +27,9 @@ const Index = () => {
   const [outputEnabled, setOutputEnabled] = useState(false);
   const [isCharging, setIsCharging] = useState(false);
   const [isMobileCharging, setIsMobileCharging] = useState(false);
-  const [timeRange, setTimeRange] = useState('5min');
+  const [timeRange, setTimeRange] = useState<'1min' | '5min' | '30min' | '2hr'>('5min');
+  const [connected, setConnected] = useState(false);
+  const [transport, setTransport] = useState<'webserial' | 'bridge' | 'simulation'>('simulation');
   const { toast } = useToast();
   
   const [telemetry, setTelemetry] = useState<TelemetryData>({
@@ -176,6 +179,19 @@ const Index = () => {
     });
   };
 
+  const handleSend = (command: string) => {
+    // Add to device logs if available
+    if ((window as any).deviceBarAddLog) {
+      (window as any).deviceBarAddLog('sent', command);
+    }
+    console.log('Sending command:', command);
+  };
+
+  const handleConnectionChange = (connected: boolean, transport: 'webserial' | 'bridge' | 'simulation') => {
+    setConnected(connected);
+    setTransport(transport);
+  };
+
   const connectionStatus = {
     backend: 'connected' as const,
     device: 'simulating' as const
@@ -198,6 +214,9 @@ const Index = () => {
         telemetry={telemetry}
         onExport={handleExport}
         onSettings={handleSettings}
+        onSend={handleSend}
+        connected={connected}
+        transport={transport}
       />
 
       {/* Viewport-bounded grid wrapper with independent scrolling */}
@@ -283,6 +302,8 @@ const Index = () => {
                 onCurrentChange={handleCurrentChange}
                 onOutputToggle={handleOutputToggle}
                 onSoftStart={handleSoftStart}
+                connected={connected}
+                onSend={handleSend}
               />
             )}
             {activeTab === 'battery' && (
@@ -326,6 +347,14 @@ const Index = () => {
           </div>
         </main>
       </div>
+      
+      {/* Sticky Footer Telemetry */}
+      <TelemetryFooter
+        inputVoltage={metrics.inputPower ? metrics.inputPower / Math.max(metrics.outputCurrent, 0.1) : null}
+        outputVoltage={metrics.outputVoltage}
+        outputCurrent={metrics.outputCurrent}
+        connected={connected}
+      />
     </div>
   );
 };

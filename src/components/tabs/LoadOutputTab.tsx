@@ -35,6 +35,8 @@ interface LoadOutputTabProps {
   onCurrentChange: (current: number) => void;
   onOutputToggle: (enabled: boolean) => void;
   onSoftStart: () => void;
+  connected?: boolean;
+  onSend?: (command: string) => void;
 }
 
 export const LoadOutputTab: React.FC<LoadOutputTabProps> = ({
@@ -44,7 +46,9 @@ export const LoadOutputTab: React.FC<LoadOutputTabProps> = ({
   onVoltageChange,
   onCurrentChange,
   onOutputToggle,
-  onSoftStart
+  onSoftStart,
+  connected = false,
+  onSend
 }) => {
   const [voltage, setVoltage] = useState(5.0);
   const [currentLimit, setCurrentLimit] = useState(1.0);

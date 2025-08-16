@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Settings, Download, Wifi, WifiOff, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ExportDialog } from './ExportDialog';
+import { DeviceBar } from './DeviceBar';
 import { TelemetryData, SparklineData } from '@/lib/export-utils';
 
 interface ConnectionStatus {
@@ -23,6 +24,9 @@ interface PowerHubHeaderProps {
   telemetry: TelemetryData;
   onExport: () => void;
   onSettings: () => void;
+  onSend?: (command: string) => void;
+  connected?: boolean;
+  transport?: 'webserial' | 'bridge' | 'simulation';
 }
 
 export const PowerHubHeader: React.FC<PowerHubHeaderProps> = ({
@@ -31,9 +35,24 @@ export const PowerHubHeader: React.FC<PowerHubHeaderProps> = ({
   sparklineData,
   telemetry,
   onExport,
-  onSettings
+  onSettings,
+  onSend,
+  connected = false,
+  transport = 'simulation'
 }) => {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
+  const handleConnectionChange = (connected: boolean, transport: 'webserial' | 'bridge' | 'simulation') => {
+    // Handle connection state changes
+    console.log('Connection changed:', connected, transport);
+  };
+
+  const handleSend = (command: string) => {
+    if (onSend) {
+      onSend(command);
+    }
+    console.log('Sending command:', command);
+  };
 
   const getBackendStatus = () => {
     const isConnected = connectionStatus.backend === 'connected';
@@ -86,34 +105,13 @@ export const PowerHubHeader: React.FC<PowerHubHeaderProps> = ({
           </div>
           
           <div className="flex items-center gap-3">
-            {/* Backend Status */}
-            <Badge 
-              variant={backendStatus.variant as any}
-              className={cn(
-                "flex items-center gap-1 text-xs py-1 px-2",
-                backendStatus.pulse && "animate-pulse"
-              )}
-            >
-              <backendStatus.icon className="h-3 w-3" />
-              {backendStatus.label}
-            </Badge>
-            
-            {/* Device Status */}
-            <Badge 
-              variant={deviceStatus.variant as any}
-              className={cn(
-                "flex items-center gap-1 text-xs py-1 px-2",
-                deviceStatus.pulse && "animate-pulse"
-              )}
-            >
-              <div className={cn(
-                "w-1.5 h-1.5 rounded-full",
-                deviceStatus.variant === 'default' && "bg-success animate-pulse",
-                deviceStatus.variant === 'warning' && "bg-warning animate-pulse",
-                deviceStatus.variant === 'destructive' && "bg-destructive animate-pulse"
-              )} />
-              {deviceStatus.label}
-            </Badge>
+            {/* Device Bar */}
+            <DeviceBar
+              onConnectionChange={handleConnectionChange}
+              connected={connected}
+              transport={transport}
+              onSend={handleSend}
+            />
             
             <Button 
               variant="control" 
