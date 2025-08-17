@@ -29,23 +29,23 @@ export const SparklineChart: React.FC<SparklineChartProps> = ({
     index
   }));
 
-  // Debug: log the data to console
-  console.log('SparklineChart data:', { data: chartData.slice(-5), color, height });
+  // fallback to a theme color if caller didn't provide one
+  const strokeColor = color || "hsl(var(--power-color))";
 
   return (
-    <div style={{ width, height }} className="relative bg-black rounded overflow-hidden border border-gray-600">
+    // make background transparent so chart blends with dark theme
+    <div style={{ width, height }} className="relative bg-transparent rounded overflow-hidden border border-gray-600">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
           <Line
             type="monotone"
             dataKey="value"
-            stroke={color}
-            strokeWidth={3}
+            stroke={strokeColor}
+            strokeWidth={2}
             dot={false}
             activeDot={false}
-            animationDuration={1500}
-            animationBegin={0}
             isAnimationActive={true}
+            animationDuration={800}
             animationEasing="ease-out"
           />
         </LineChart>

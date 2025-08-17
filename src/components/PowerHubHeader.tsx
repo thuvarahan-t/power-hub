@@ -27,6 +27,7 @@ interface PowerHubHeaderProps {
   onSend?: (command: string) => void;
   connected?: boolean;
   transport?: 'webserial' | 'bridge' | 'simulation';
+  onConnectionChange?: (connected: boolean, transport: 'webserial' | 'bridge' | 'simulation') => void; // <-- added
 }
 
 export const PowerHubHeader: React.FC<PowerHubHeaderProps> = ({
@@ -38,13 +39,18 @@ export const PowerHubHeader: React.FC<PowerHubHeaderProps> = ({
   onSettings,
   onSend,
   connected = false,
-  transport = 'simulation'
+  transport = 'simulation',
+  onConnectionChange // receive the parent's handler
 }) => {
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
-  const handleConnectionChange = (connected: boolean, transport: 'webserial' | 'bridge' | 'simulation') => {
-    // Handle connection state changes
-    console.log('Connection changed:', connected, transport);
+  const handleConnectionChange = (connectedFlag: boolean, tr: 'webserial' | 'bridge' | 'simulation') => {
+    // Forward to parent page if provided
+    if (onConnectionChange) {
+      onConnectionChange(connectedFlag, tr);
+    }
+    // local logging
+    console.log('Connection changed (header):', connectedFlag, tr);
   };
 
   const handleSend = (command: string) => {
@@ -107,7 +113,7 @@ export const PowerHubHeader: React.FC<PowerHubHeaderProps> = ({
           <div className="flex items-center gap-3">
             {/* Device Bar */}
             <DeviceBar
-              onConnectionChange={handleConnectionChange}
+              onConnectionChange={handleConnectionChange} // forward the header's handler to DeviceBar
               connected={connected}
               transport={transport}
               onSend={handleSend}

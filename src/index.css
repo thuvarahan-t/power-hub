@@ -4,6 +4,20 @@
 
 /* Power Hub Design System - Industrial Dark Theme */
 
+/* Fallback base to avoid white/blank screen if Tailwind layers or CSS variables fail */
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  /* Use CSS variable if present, otherwise use dark fallback values */
+  background: hsl(var(--background, 220 13% 6%));
+  color: hsl(var(--foreground, 220 13% 96%));
+  /* Ensure content is visible even if other rules are missing */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 @layer base {
   html, body {
     @apply h-full w-full m-0 p-0;
@@ -97,7 +111,6 @@
     /* Typography */
     --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   }
-
 }
 
 @layer components {
@@ -269,12 +282,52 @@
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
+/* Move simulation override to top-level to avoid nesting issues */
+:root.simulation-mode {
+  /* Background stays dark but tinted */
+  --background: 350 20% 4%;
+  --foreground: 0 0% 96%;
 
-  body {
-    @apply bg-background text-foreground;
-  }
+  /* Card System */
+  --card: 350 40% 6%;
+  --card-foreground: 0 0% 96%;
+  --card-glow: 350 40% 10%;
+
+  /* Primary / Accent -> red */
+  --primary: 0 85% 50%;
+  --primary-foreground: 0 0% 96%;
+  --primary-glow: 0 85% 60%;
+  --primary-muted: 0 85% 25%;
+
+  --accent: 0 75% 45%;
+  --accent-foreground: 0 0% 96%;
+  --accent-glow: 0 75% 55%;
+
+  /* Make destructive (red) stronger for consistency */
+  --destructive: 0 90% 50%;
+  --destructive-foreground: 0 0% 96%;
+  --destructive-glow: 0 90% 60%;
+
+  /* Muted / secondary darker red-tint */
+  --secondary: 350 30% 12%;
+  --secondary-foreground: 0 0% 96%;
+  --muted: 350 30% 10%;
+  --muted-foreground: 0 0% 60%;
+
+  /* Power Hub Specific variables to red shades */
+  --voltage-color: 0 85% 50%;      /* red */
+  --current-color: 0 75% 45%;
+  --power-color: 0 65% 40%;
+  --temperature-color: 0 70% 45%;
+
+  /* Gradients tuned toward red */
+  --gradient-electric: linear-gradient(135deg, hsl(0 85% 50%), hsl(350 75% 40%));
+  --gradient-power: linear-gradient(135deg, hsl(0 65% 40%), hsl(350 75% 40%));
+  --gradient-warning: linear-gradient(135deg, hsl(0 85% 50%), hsl(0 70% 40%));
+  --gradient-card: linear-gradient(135deg, hsl(350 40% 6%), hsl(350 40% 10%));
+
+  /* Shadows & glows tuned to red */
+  --shadow-electric: 0 0 30px hsl(0 85% 50% / 0.35);
+  --shadow-warning: 0 0 30px hsl(0 75% 45% / 0.3);
+  --shadow-card: 0 10px 30px hsl(350 20% 3% / 0.6);
 }

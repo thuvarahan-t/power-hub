@@ -32,13 +32,16 @@ export const BarChart: React.FC<BarChartProps> = ({
   // Debug: log the data to console
   console.log('BarChart data:', { data: chartData.slice(-5), color, height });
 
+  const fillColor = color || "hsl(var(--power-color))";
+
   return (
-    <div style={{ width, height }} className="relative bg-black rounded overflow-hidden border border-gray-600">
+    // transparent background to blend with theme
+    <div style={{ width, height }} className="relative bg-transparent rounded overflow-hidden border border-gray-600">
       <ResponsiveContainer width="100%" height="100%">
         <RechartsBarChart data={chartData} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
           <Bar
             dataKey="value"
-            fill={color}
+            fill={fillColor}
             radius={[2, 2, 0, 0]}
             animationDuration={1500}
             animationBegin={0}

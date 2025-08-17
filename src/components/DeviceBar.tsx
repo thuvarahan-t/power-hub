@@ -23,7 +23,7 @@ export const DeviceBar: React.FC<DeviceBarProps> = ({
   onSend
 }) => {
   const [availablePorts, setAvailablePorts] = useState<string[]>([]);
-  const [selectedPort, setSelectedPort] = useState<string>('');
+  const [selectedPort, setSelectedPort] = useState<string>('simulation'); // default to simulation
   const [isConnecting, setIsConnecting] = useState(false);
   const [logs, setLogs] = useState<{ time: string; direction: 'sent' | 'received'; message: string }[]>([]);
   const { toast } = useToast();
@@ -80,6 +80,17 @@ export const DeviceBar: React.FC<DeviceBarProps> = ({
     }
   };
 
+  // Keep document root class in sync: apply red theme whenever NOT connected.
+  useEffect(() => {
+    // When the app is disconnected, show red (simulation) theme.
+    // When connected to a real device (webserial/bridge), remove the theme.
+    const shouldApply = !connected;
+    document.documentElement.classList.toggle('simulation-mode', shouldApply);
+    return () => {
+      document.documentElement.classList.remove('simulation-mode');
+    };
+  }, [connected]);
+
   const connect = async () => {
     setIsConnecting(true);
     
@@ -90,17 +101,23 @@ export const DeviceBar: React.FC<DeviceBarProps> = ({
       if (selectedPort === 'simulation') {
         onConnectionChange(true, 'simulation');
         addLog('sent', 'Connected to simulation mode');
+        // keep red theme for simulation connection
+        document.documentElement.classList.add('simulation-mode');
       } else if (selectedPort && webSerialAvailable) {
         onConnectionChange(true, 'webserial');
         addLog('sent', `Connected to ${selectedPort}`);
+        // real device connected -> remove red theme
+        document.documentElement.classList.remove('simulation-mode');
       } else {
         onConnectionChange(true, 'bridge');
         addLog('sent', 'Connected via bridge');
+        // assume bridge is real device -> remove red theme
+        document.documentElement.classList.remove('simulation-mode');
       }
       
       toast({
         title: "Connected",
-        description: `Device connected via ${transport}`,
+        description: `Device connected via ${selectedPort === 'simulation' ? 'simulation' : (webSerialAvailable ? 'webserial' : 'bridge')}`,
       });
     } catch (error) {
       toast({
@@ -116,6 +133,8 @@ export const DeviceBar: React.FC<DeviceBarProps> = ({
   const disconnect = () => {
     onConnectionChange(false, transport);
     addLog('sent', 'Disconnected');
+    // After disconnect, enable red theme to indicate simulation/disconnected state
+    document.documentElement.classList.add('simulation-mode');
     toast({
       title: "Disconnected",
       description: "Device disconnected successfully",

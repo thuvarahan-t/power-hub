@@ -31,6 +31,7 @@ interface ChartDataPoint {
   current: number;
   power: number;
   temperature: number;
+  simulated?: boolean; // <-- mark if this point was simulated
 }
 
 type TimeRange = "1min" | "5min" | "30min" | "2hr";
@@ -84,7 +85,8 @@ const metricDefaults = (m: Metric, mode?: string) => {
         ticks: [0, 1, 2, 3, 4.35],
         ref: 4.35,
         refLabel: "Max 4.35V",
-        stroke: "hsl(var(--electric))",
+        // <- use the defined voltage CSS variable
+        stroke: "hsl(var(--voltage-color))",
         name: "Voltage (V)",
         key: "voltage" as const,
       };
@@ -95,7 +97,7 @@ const metricDefaults = (m: Metric, mode?: string) => {
         ticks: [0, 1, 2, 3, 4, 5],
         ref: 5,
         refLabel: "Max 5V (Mobile)",
-        stroke: "hsl(var(--electric))",
+        stroke: "hsl(var(--voltage-color))",
         name: "Voltage (V)",
         key: "voltage" as const,
       };
@@ -106,7 +108,7 @@ const metricDefaults = (m: Metric, mode?: string) => {
         ticks: [0, 3, 6, 9, 12],
         ref: 12,
         refLabel: "Max 12V",
-        stroke: "hsl(var(--electric))",
+        stroke: "hsl(var(--voltage-color))",
         name: "Voltage (V)",
         key: "voltage" as const,
       };
@@ -118,7 +120,7 @@ const metricDefaults = (m: Metric, mode?: string) => {
       ticks: [0, 3, 6, 9, 12],
       ref: 12,
       refLabel: "Max 12V",
-      stroke: "hsl(var(--electric))",
+      stroke: "hsl(var(--voltage-color))",
       name: "Voltage (V)",
       key: "voltage" as const,
     };
@@ -131,7 +133,8 @@ const metricDefaults = (m: Metric, mode?: string) => {
         ticks: [0, 0.5, 1, 1.5],
         ref: 1.5,
         refLabel: "Max 1.5A",
-        stroke: "hsl(var(--current))",
+        // <- correct current CSS variable
+        stroke: "hsl(var(--current-color))",
         name: "Current (A)",
         key: "current" as const,
       };
@@ -142,7 +145,7 @@ const metricDefaults = (m: Metric, mode?: string) => {
         ticks: [0, 0.5, 1, 1.5, 2, 2.4],
         ref: 2.4,
         refLabel: "Max 2.4A (Mobile)",
-        stroke: "hsl(var(--current))",
+        stroke: "hsl(var(--current-color))",
         name: "Current (A)",
         key: "current" as const,
       };
@@ -153,7 +156,7 @@ const metricDefaults = (m: Metric, mode?: string) => {
         ticks: [0, 0.5, 1, 1.5, 2],
         ref: 2,
         refLabel: "Max 2A",
-        stroke: "hsl(var(--current))",
+        stroke: "hsl(var(--current-color))",
         name: "Current (A)",
         key: "current" as const,
       };
@@ -164,7 +167,7 @@ const metricDefaults = (m: Metric, mode?: string) => {
       ticks: [0, 0.5, 1, 1.5, 2],
       ref: 2,
       refLabel: "Max 2A",
-      stroke: "hsl(var(--current))",
+      stroke: "hsl(var(--current-color))",
       name: "Current (A)",
       key: "current" as const,
     };
@@ -177,7 +180,8 @@ const metricDefaults = (m: Metric, mode?: string) => {
         ticks: [0, 2, 4, 6, 6.5],
         ref: 6.5,
         refLabel: "Max 6.5W",
-        stroke: "hsl(var(--power))",
+        // <- use power CSS variable
+        stroke: "hsl(var(--power-color))",
         name: "Power (W)",
         key: "power" as const,
       };
@@ -188,7 +192,7 @@ const metricDefaults = (m: Metric, mode?: string) => {
         ticks: [0, 3, 6, 9, 12],
         ref: 12,
         refLabel: "Max 12W (Mobile)",
-        stroke: "hsl(var(--power))",
+        stroke: "hsl(var(--power-color))",
         name: "Power (W)",
         key: "power" as const,
       };
@@ -199,7 +203,7 @@ const metricDefaults = (m: Metric, mode?: string) => {
         ticks: [0, 6, 12, 18, 24],
         ref: 24,
         refLabel: "Max 24W",
-        stroke: "hsl(var(--power))",
+        stroke: "hsl(var(--power-color))",
         name: "Power (W)",
         key: "power" as const,
       };
@@ -210,7 +214,7 @@ const metricDefaults = (m: Metric, mode?: string) => {
       ticks: [0, 6, 12, 18, 24],
       ref: 24,
       refLabel: "Max 24W",
-      stroke: "hsl(var(--power))",
+      stroke: "hsl(var(--power-color))",
       name: "Power (W)",
       key: "power" as const,
     };
@@ -222,7 +226,8 @@ const metricDefaults = (m: Metric, mode?: string) => {
     ticks: [0, 20, 40, 60, 80, 100],
     ref: undefined,
     refLabel: undefined,
-    stroke: "hsl(var(--warning))",
+    // <- temperature color variable
+    stroke: "hsl(var(--temperature-color))",
     name: "Temperature (°C)",
     key: "temperature" as const,
   };
@@ -281,7 +286,7 @@ export const LiveChart: React.FC<LiveChartProps> = ({
   useEffect(() => {
     if (!isActive) return;
 
-    let ts, voltage, current, power, temperature;
+    let ts, voltage, current, power, temperature, simulatedFlag;
     if (telemetry) {
       ts = telemetry.timestamp || Date.now();
       voltage = Number(telemetry.voltage ?? 0);
@@ -290,34 +295,35 @@ export const LiveChart: React.FC<LiveChartProps> = ({
         ? Number(telemetry.power)
         : Number((voltage * current).toFixed(2));
       temperature = Number(telemetry.temperature ?? 0);
+      simulatedFlag = (telemetry as any).simulated === true; // use simulated flag from parent telemetry when present
     } else {
       // Simulate values for demo/testing
       ts = Date.now();
-      // Use mode to set realistic values
+      simulatedFlag = true;
       switch (mode) {
         case "charge":
-          voltage = 4.1 + Math.random() * 0.2; // 4.1-4.3V
-          current = 1.0 + Math.random() * 0.5; // 1.0-1.5A
+          voltage = 4.1 + Math.random() * 0.2;
+          current = 1.0 + Math.random() * 0.5;
           power = voltage * current;
-          temperature = 30 + Math.random() * 10; // 30-40°C
+          temperature = 30 + Math.random() * 10;
           break;
         case "mobile":
-          voltage = 4.8 + Math.random() * 0.2; // 4.8-5.0V
-          current = 1.5 + Math.random() * 0.8; // 1.5-2.3A
+          voltage = 4.8 + Math.random() * 0.2;
+          current = 1.5 + Math.random() * 0.8;
           power = voltage * current;
-          temperature = 28 + Math.random() * 7; // 28-35°C
+          temperature = 28 + Math.random() * 7;
           break;
         case "load":
-          voltage = 11 + Math.random(); // 11-12V
-          current = 1.5 + Math.random() * 0.5; // 1.5-2A
+          voltage = 11 + Math.random();
+          current = 1.5 + Math.random() * 0.5;
           power = voltage * current;
-          temperature = 35 + Math.random() * 10; // 35-45°C
+          temperature = 35 + Math.random() * 10;
           break;
         default:
-          voltage = 3 + Math.random() * 9; // 3-12V
-          current = 0.5 + Math.random() * 1.5; // 0.5-2A
+          voltage = 3 + Math.random() * 9;
+          current = 0.5 + Math.random() * 1.5;
           power = voltage * current;
-          temperature = 25 + Math.random() * 20; // 25-45°C
+          temperature = 25 + Math.random() * 20;
       }
     }
 
@@ -326,8 +332,9 @@ export const LiveChart: React.FC<LiveChartProps> = ({
       time: formatTime(ts),
       voltage,
       current,
-      power: Number(power.toFixed(2)),
+      power: Number((power ?? (voltage * current)).toFixed(2)),
       temperature: Number(temperature.toFixed(2)),
+      simulated: simulatedFlag
     };
 
     const windowMs = TIME_RANGE_SECONDS[timeRange] * 1000;
@@ -373,8 +380,10 @@ export const LiveChart: React.FC<LiveChartProps> = ({
 
   // CSV export
   const handleExportCSV = () => {
+    // Only export points that are NOT simulated
+    const realPoints = chartData.filter(d => !d.simulated);
     const header = "time,voltage,current,power,temperature\n";
-    const rows = chartData
+    const rows = realPoints
       .map(
         (d) => `${d.time},${d.voltage},${d.current},${d.power},${d.temperature}`
       )
@@ -445,7 +454,8 @@ export const LiveChart: React.FC<LiveChartProps> = ({
               <ReferenceLine
                 y={cfg.ref}
                 strokeDasharray="3 3"
-                stroke="red"
+                // use theme destructive color so limit stands out but matches theme
+                stroke="hsl(var(--destructive))"
                 label={cfg.refLabel}
               />
             )}
