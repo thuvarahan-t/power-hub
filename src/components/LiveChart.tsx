@@ -25,8 +25,7 @@ interface TelemetryData {
 }
 
 interface ChartDataPoint {
-  ts: number;       // epoch ms for trimming
-  time: string;     // label for X axis
+  ts: number;       // epoch ms
   voltage: number;
   current: number;
   power: number;
@@ -274,6 +273,7 @@ export const LiveChart: React.FC<LiveChartProps> = ({
   mode,
 }) => {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+  const [allData, setAllData] = useState<ChartDataPoint[]>([]);
   const [selectedMetric, setSelectedMetric] =
     useState<Metric>(propSelectedMetric);
 
@@ -282,7 +282,7 @@ export const LiveChart: React.FC<LiveChartProps> = ({
     setSelectedMetric(propSelectedMetric);
   }, [propSelectedMetric]);
 
-  // Push new telemetry into ring buffer
+  // Push new telemetry into history buffer (retain up to max window)
   useEffect(() => {
     if (!isActive) return;
 
@@ -329,7 +329,6 @@ export const LiveChart: React.FC<LiveChartProps> = ({
 
     const next: ChartDataPoint = {
       ts,
-      time: formatTime(ts),
       voltage,
       current,
       power: Number((power ?? (voltage * current)).toFixed(2)),
@@ -337,23 +336,21 @@ export const LiveChart: React.FC<LiveChartProps> = ({
       simulated: simulatedFlag
     };
 
-    const windowMs = TIME_RANGE_SECONDS[timeRange] * 1000;
-    const cutoff = ts - windowMs;
+    const maxWindowMs = TIME_RANGE_SECONDS["2hr"] * 1000;
+    const cutoff = ts - maxWindowMs;
 
-    setChartData((prev) => {
+    setAllData((prev) => {
       const merged = [...prev, next].filter((p) => p.ts >= cutoff);
       return merged;
     });
-  }, [telemetry, isActive, timeRange, mode]);
+  }, [telemetry, isActive, mode]);
 
-  // Trim on timeRange change even if no new data
+  // Derive chart data for selected time range from history
   useEffect(() => {
-    setChartData((prev) => {
-      const now = Date.now();
-      const cutoff = now - TIME_RANGE_SECONDS[timeRange] * 1000;
-      return prev.filter((p) => p.ts >= cutoff);
-    });
-  }, [timeRange]);
+    const now = Date.now();
+    const cutoff = now - TIME_RANGE_SECONDS[timeRange] * 1000;
+    setChartData(allData.filter((p) => p.ts >= cutoff));
+  }, [allData, timeRange]);
 
   // Auto Y-axis config based on metric (overridable via props)
   const cfg = useMemo(() => {
@@ -424,7 +421,10 @@ export const LiveChart: React.FC<LiveChartProps> = ({
           >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
-              dataKey="time"
+              dataKey="ts"
+              type="number"
+              domain={["dataMin", "dataMax"]}
+              tickFormatter={(value) => formatTime(Number(value))}
               stroke="hsl(var(--muted-foreground))"
               fontSize={12}
               tickLine={false}
@@ -448,7 +448,33 @@ export const LiveChart: React.FC<LiveChartProps> = ({
                   : undefined
               }
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const p = payload[0]?.payload as ChartDataPoint | undefined;
+                  const label = p ? formatTime(p.ts) : "";
+                  return (
+                    <div
+                      style={{
+                        background: "rgba(20,20,20,0.9)",
+                        color: "#fff",
+                        padding: 8,
+                        borderRadius: 6,
+                        fontSize: 12,
+                      }}
+                    >
+                      <div style={{ opacity: 0.8 }}>{label}</div>
+                      {payload.map((entry: any, idx: number) => (
+                        <div key={idx}>
+                          {entry.name}: <strong>{entry.value}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
             <Legend />
             {cfg.ref !== undefined && (
               <ReferenceLine
