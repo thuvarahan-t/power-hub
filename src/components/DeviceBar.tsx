@@ -32,6 +32,8 @@ export const DeviceBar: React.FC<DeviceBarProps> = ({
   const webSerialAvailable = 'serial' in navigator && !!(navigator as any).serial;
 
   useEffect(() => {
+    // Always try backend ports; web serial optional
+    refreshBackendPorts();
     if (webSerialAvailable) {
       refreshPorts();
     }
@@ -44,10 +46,28 @@ export const DeviceBar: React.FC<DeviceBarProps> = ({
       const serial = (navigator as any).serial;
       const ports = await serial.getPorts();
       const portNames = ports.map((_, index) => `Serial Port ${index + 1}`);
-      setAvailablePorts(portNames);
+      setAvailablePorts(prev => Array.from(new Set([...(prev || []), ...portNames])));
     } catch (error) {
       console.error('Failed to get ports:', error);
       setAvailablePorts([]);
+    }
+  };
+
+  const refreshBackendPorts = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/ports', { cache: 'no-store' });
+      if (res.ok) {
+        const data: string[] = await res.json();
+        if (Array.isArray(data)) {
+          setAvailablePorts(prev => Array.from(new Set([...(prev || []), ...data])));
+          // If nothing selected yet, default to first backend port
+          if (selectedPort === 'simulation' && data.length > 0) {
+            setSelectedPort(data[0]);
+          }
+        }
+      }
+    } catch (err) {
+      // ignore; backend might not be running yet
     }
   };
 
@@ -103,21 +123,39 @@ export const DeviceBar: React.FC<DeviceBarProps> = ({
         addLog('sent', 'Connected to simulation mode');
         // keep red theme for simulation connection
         document.documentElement.classList.add('simulation-mode');
-      } else if (selectedPort && webSerialAvailable) {
-        onConnectionChange(true, 'webserial');
-        addLog('sent', `Connected to ${selectedPort}`);
-        // real device connected -> remove red theme
-        document.documentElement.classList.remove('simulation-mode');
+      } else if (selectedPort) {
+        // Try backend bridge connect with actual OS port path
+        try {
+          const res = await fetch('http://localhost:8000/connect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ port: selectedPort })
+          });
+          const body = await res.json().catch(() => ({}));
+          if (res.ok && body?.status === 'connected') {
+            onConnectionChange(true, 'bridge');
+            addLog('sent', `Connected via backend to ${selectedPort}`);
+            document.documentElement.classList.remove('simulation-mode');
+          } else {
+            throw new Error(body?.message || 'Backend connect failed');
+          }
+        } catch (err) {
+          // fallback: treat as webserial if available
+          if (webSerialAvailable) {
+            onConnectionChange(true, 'webserial');
+            addLog('sent', `Connected (webserial) to ${selectedPort}`);
+            document.documentElement.classList.remove('simulation-mode');
+          } else {
+            throw err;
+          }
+        }
       } else {
-        onConnectionChange(true, 'bridge');
-        addLog('sent', 'Connected via bridge');
-        // assume bridge is real device -> remove red theme
-        document.documentElement.classList.remove('simulation-mode');
+        throw new Error('No port selected');
       }
       
       toast({
         title: "Connected",
-        description: `Device connected via ${selectedPort === 'simulation' ? 'simulation' : (webSerialAvailable ? 'webserial' : 'bridge')}`,
+        description: `Device connected via ${selectedPort === 'simulation' ? 'simulation' : 'bridge'}`,
       });
     } catch (error) {
       toast({
@@ -135,6 +173,8 @@ export const DeviceBar: React.FC<DeviceBarProps> = ({
     addLog('sent', 'Disconnected');
     // After disconnect, enable red theme to indicate simulation/disconnected state
     document.documentElement.classList.add('simulation-mode');
+    // attempt backend disconnect (ignore failures)
+    fetch('http://localhost:8000/disconnect', { method: 'POST' }).catch(() => {});
     toast({
       title: "Disconnected",
       description: "Device disconnected successfully",
@@ -186,22 +226,16 @@ export const DeviceBar: React.FC<DeviceBarProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="simulation">🎮 Simulation Mode</SelectItem>
-          {webSerialAvailable ? (
-            <>
-              {availablePorts.map((port, index) => (
-                <SelectItem key={index} value={port}>
-                  <div className="flex items-center gap-2">
-                    <Usb className="h-3 w-3" />
-                    {port}
-                  </div>
-                </SelectItem>
-              ))}
-              <SelectItem value="request-new">
-                ➕ Request New Device
-              </SelectItem>
-            </>
-          ) : (
-            <SelectItem value="bridge">🌐 Desktop Bridge</SelectItem>
+          {availablePorts.map((port, index) => (
+            <SelectItem key={index} value={port}>
+              <div className="flex items-center gap-2">
+                <Usb className="h-3 w-3" />
+                {port}
+              </div>
+            </SelectItem>
+          ))}
+          {webSerialAvailable && (
+            <SelectItem value="request-new">➕ Request New Device</SelectItem>
           )}
         </SelectContent>
       </Select>
@@ -233,7 +267,7 @@ export const DeviceBar: React.FC<DeviceBarProps> = ({
       </Button>
 
       {/* Refresh Button */}
-      <Button size="sm" variant="ghost" onClick={refreshPorts}>
+      <Button size="sm" variant="ghost" onClick={() => { refreshPorts(); refreshBackendPorts(); }}>
         <RefreshCw className="h-3 w-3" />
       </Button>
 

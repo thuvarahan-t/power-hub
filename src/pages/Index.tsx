@@ -23,6 +23,7 @@ interface TelemetryData {
   mode: "load" | "charge" | "standby";
   warnings: string[];
   simulated?: boolean;
+  inputVoltage?: number;
 }
 
 interface ChargingSettings {
@@ -189,7 +190,8 @@ const Index: React.FC = () => {
           temperature: Number(data.temperature ?? telemetry.temperature),
           mode: (data.mode === 'charge' ? 'charge' : data.mode === 'load' ? 'load' : 'standby'),
           warnings: Array.isArray(data.warnings) ? data.warnings : [],
-          simulated: false
+          simulated: false,
+          inputVoltage: Number(data.inputVoltage ?? 0)
         };
 
         // push the telemetry into state
@@ -204,7 +206,7 @@ const Index: React.FC = () => {
             window.clearInterval(simIntervalRef.current);
             simIntervalRef.current = null;
           }
-          const inputVal = Number((newTelemetry.power * 1.05).toFixed(3));
+          const inputVal = Number(((newTelemetry.inputVoltage ?? newTelemetry.voltage) as number).toFixed(3));
           setSparklineData({
             inputPower: Array(60).fill(inputVal),
             outputPower: Array(60).fill(Number(newTelemetry.power.toFixed(3))),
@@ -215,9 +217,10 @@ const Index: React.FC = () => {
           return;
         }
 
-        // Subsequent samples: append to output buffers, keep inputPower controlled by user/start logic
+        // Subsequent samples: append to buffers, including input voltage
         setSparklineData(prev => ({
           ...prev,
+          inputPower: [...prev.inputPower.slice(-59), Number(((newTelemetry.inputVoltage ?? newTelemetry.voltage) as number).toFixed(3))].slice(-60),
           outputPower: [...prev.outputPower.slice(-59), Number(newTelemetry.power.toFixed(3))].slice(-60),
           outputVoltage: [...prev.outputVoltage.slice(-59), Number(newTelemetry.voltage.toFixed(3))].slice(-60),
           outputCurrent: [...prev.outputCurrent.slice(-59), Number(newTelemetry.current.toFixed(3))].slice(-60)
@@ -363,6 +366,11 @@ const Index: React.FC = () => {
     setTransport(tr);
     if (connectedFlag && tr !== "simulation") {
       firstRealReceivedRef.current = false; // wait for first real sample
+      // start polling immediately upon real device connection
+      startBackendPolling();
+    } else {
+      // stop polling when disconnected or switched to simulation
+      stopBackendPolling();
     }
     // simulation-theme: show red when disconnected OR explicit simulation selected
     const showSimulationTheme = !connectedFlag || tr === "simulation";
@@ -378,6 +386,15 @@ const Index: React.FC = () => {
       startInputPowerRamp(pin);
     }
     console.log("Setting voltage:", voltage);
+
+    // If connected to real device, send to backend (amps -> mA handled server-side)
+    if (connected && transport !== 'simulation') {
+      fetch('http://localhost:8000/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voltage })
+      }).catch(() => {});
+    }
   };
 
   const handleCurrentChange = (current: number) => {
@@ -387,6 +404,14 @@ const Index: React.FC = () => {
       startInputPowerRamp(pin);
     }
     console.log("Setting current:", current);
+
+    if (connected && transport !== 'simulation') {
+      fetch('http://localhost:8000/set', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ current })
+      }).catch(() => {});
+    }
   };
 
   const handleOutputToggle = (enabled: boolean) => {
@@ -397,6 +422,9 @@ const Index: React.FC = () => {
       const pin = computeActivePin();
       startInputPowerRamp(pin);
       toast({ title: "Output Enabled", description: "Power output is now active" });
+      if (connected && transport !== 'simulation') {
+    fetch('http://localhost:8000/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ on: true }) }).catch(() => {});
+      }
     } else {
       // disable load output
       if (activeOutputMode === "load") stopActiveOutput();
@@ -405,6 +433,9 @@ const Index: React.FC = () => {
         rampDownInputPower();
       }
       toast({ title: "Output Disabled", description: "Power output has been stopped" });
+      if (connected && transport !== 'simulation') {
+    fetch('http://localhost:8000/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ on: false }) }).catch(() => {});
+      }
     }
   };
 
@@ -418,6 +449,11 @@ const Index: React.FC = () => {
 
     // start backend polling to get measured voltage/current every 0.5s
     startBackendPolling();
+
+    if (connected && transport !== 'simulation') {
+      fetch('http://localhost:8000/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ on: true }) }).catch(() => {});
+      fetch('http://localhost:8000/set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ voltage: targetVoltage, current: targetCurrent }) }).catch(() => {});
+    }
   };
 
   const handleStartCharging = (settings: ChargingSettings) => {
@@ -471,7 +507,7 @@ const Index: React.FC = () => {
     // Prefer recent real telemetry immediately when available
     if (hasRealTelemetry) {
       return {
-        inputPower: telemetry.power * 1.1,
+        inputPower: (telemetry.inputVoltage ?? 0),
         outputPower: telemetry.power,
         outputVoltage: telemetry.voltage,
         outputCurrent: telemetry.current,
@@ -488,7 +524,7 @@ const Index: React.FC = () => {
     // Not using real device => show setpoints for the active mode
     if (activeOutputMode === "load") {
       return {
-        inputPower: Number((targetVoltage * targetCurrent).toFixed(3)),
+        inputPower: 12.0,
         outputPower: Number((targetVoltage * targetCurrent).toFixed(3)),
         outputVoltage: targetVoltage,
         outputCurrent: targetCurrent,
@@ -497,7 +533,7 @@ const Index: React.FC = () => {
 
     if (activeOutputMode === "battery" && currentBatterySettings) {
       return {
-        inputPower: Number((currentBatterySettings.vmax * currentBatterySettings.imax).toFixed(3)),
+        inputPower: 12.0,
         outputPower: Number((currentBatterySettings.vmax * currentBatterySettings.imax).toFixed(3)),
         outputVoltage: currentBatterySettings.vmax,
         outputCurrent: currentBatterySettings.imax,
@@ -506,7 +542,7 @@ const Index: React.FC = () => {
 
     if (activeOutputMode === "mobile" && currentMobileSettings) {
       return {
-        inputPower: Number((currentMobileSettings.voltage * currentMobileSettings.current).toFixed(3)),
+        inputPower: 12.0,
         outputPower: Number((currentMobileSettings.voltage * currentMobileSettings.current).toFixed(3)),
         outputVoltage: currentMobileSettings.voltage,
         outputCurrent: currentMobileSettings.current,
@@ -546,10 +582,10 @@ const Index: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-[20%_80%] h-[calc(100vh-56px)] overflow-hidden">
         <aside className="min-h-0 overflow-y-auto border-r bg-card/40 p-4 space-y-4">
           <Card className="bg-card/50 backdrop-blur-sm border border-primary/20 rounded-xl p-4 space-y-2">
-            <div className="text-sm text-muted-foreground">Input Power (Pin)</div>
+            <div className="text-sm text-muted-foreground">Input Voltage (Vin)</div>
             <div className="text-2xl font-bold font-mono text-electric">
               {displayedMetrics.inputPower?.toFixed(2)}
-              <span className="text-lg text-muted-foreground ml-1">W</span>
+              <span className="text-lg text-muted-foreground ml-1">V</span>
             </div>
             <div className="border border-dashed border-muted-foreground/30 rounded p-1">
               <SparklineChart data={sparklineData.inputPower} color="#3b82f6" height={50} />
@@ -563,7 +599,7 @@ const Index: React.FC = () => {
               <span className="text-lg text-muted-foreground ml-1">W</span>
             </div>
             <div className="border border-dashed border-muted-foreground/30 rounded p-1">
-              <BarChart data={sparklineData.outputPower} color="#f59e0b" height={50} />
+              <SparklineChart data={sparklineData.outputPower} color="hsl(var(--power-color))" height={50} />
             </div>
           </Card>
 
@@ -574,7 +610,7 @@ const Index: React.FC = () => {
               <span className="text-lg text-muted-foreground ml-1">V</span>
             </div>
             <div className="border border-dashed border-muted-foreground/30 rounded p-1">
-              <BarChart data={sparklineData.outputVoltage} color="#10b981" height={50} />
+              <SparklineChart data={sparklineData.outputVoltage} color="hsl(var(--voltage-color))" height={50} />
             </div>
           </Card>
 
@@ -585,7 +621,7 @@ const Index: React.FC = () => {
               <span className="text-lg text-muted-foreground ml-1">A</span>
             </div>
             <div className="border border-dashed border-muted-foreground/30 rounded p-1">
-              <BarChart data={sparklineData.outputCurrent} color="#ef4444" height={50} />
+              <SparklineChart data={sparklineData.outputCurrent} color="hsl(var(--current-color))" height={50} />
             </div>
           </Card>
         </aside>
@@ -648,7 +684,7 @@ const Index: React.FC = () => {
       </div>
 
       <TelemetryFooter
-        inputVoltage={displayedMetrics.inputPower ? displayedMetrics.inputPower / Math.max(displayedMetrics.outputCurrent, 0.1) : null}
+        inputVoltage={displayedMetrics.inputPower ?? null}
         outputVoltage={displayedMetrics.outputVoltage}
         outputCurrent={displayedMetrics.outputCurrent}
         connected={connected}
